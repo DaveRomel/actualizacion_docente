@@ -35,8 +35,10 @@ async def inscribir_usuario(usuario_id: int, materia_id: int):
             raise HTTPException(status_code=400, detail="No se puede inscribir, el límite de inscritos ha sido alcanzado")
 
         try:
+            correoEnviado = conn.execute(select(users.c.correoEnviado).select_from(users).where(users.c.id == usuario_id)).scalar()        
             conn.execute(inscripciones.insert().values(usuario_id=usuario_id, materia_id=materia_id))
-            conn.execute(users.update().values(status=1).where(users.c.id == usuario_id))
+
+            conn.execute(users.update().values(status=materia_id, correoEnviado=1).where(users.c.id == usuario_id))
 
             #Obtener el usuario y la materia para enviar la notificación
             usuario = conn.execute(users.select().where(users.c.id == usuario_id)).first()
@@ -47,9 +49,9 @@ async def inscribir_usuario(usuario_id: int, materia_id: int):
                 fecha=materia.fecha_curso,
                 hora=materia.hora_inicio
             )
-            print("datos: ", notificacion_data)
             # Enviar la notificación por correo electrónico
-            await enviar_notificacion(notificacion_data, usuario.email)
+            if correoEnviado == 0:
+                await enviar_notificacion(notificacion_data, usuario.email)
             conn.commit()
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error al inscribir al usuario: {e}")
@@ -57,7 +59,7 @@ async def inscribir_usuario(usuario_id: int, materia_id: int):
         return {"message": "Inscripción exitosa"}
 
     
-@inscripcion.post("/api/inscripcion", response_model=InscripcionResponse)
+#@inscripcion.post("/api/inscripcion", response_model=InscripcionResponse)
 def create_inscripcion(inscripcion: InscripcionSchema):
     with engine.connect() as conn:
         result = conn.execute(inscripciones.insert().values(usuario_id=inscripcion.usuario_id, materia_id=inscripcion.materia_id))
@@ -89,3 +91,12 @@ async def enviar_notificacion(data: NotificacionInscripcionSchema, email: str):
         raise HTTPException(status_code=500, detail=f"Error al enviar el correo: {e}")
         
     return Response(status_code = HTTP_204_NO_CONTENT)
+
+@inscripcion.delete("/api/inscripcion/{usuario_id}")
+def delete_inscripcion(usuario_id: int):
+    with engine.connect() as conn:
+        with conn.begin():
+            conn.execute(inscripciones.delete().where(inscripciones.c.usuario_id == usuario_id))
+            conn.execute(users.update().values(status=0).where(users.c.id == usuario_id))
+            conn.commit()
+            return {"message": "Inscripción eliminada correctamente"}

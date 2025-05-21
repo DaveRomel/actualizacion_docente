@@ -10,6 +10,7 @@ users = Table("users", meta_data,
               Column("celular",String(10), nullable=False),
               Column("username",String(10), nullable=False),
               Column("user_passw",Text, nullable=False),
-              Column("procedencia",String(50),nullable=False))
+              Column("procedencia",String(50),nullable=False),
+              Column("correoEnviado",Integer, nullable=False))
 
 meta_data.create_all(engine)

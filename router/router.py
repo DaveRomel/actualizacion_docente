@@ -45,7 +45,8 @@ def create_user(data_user: UserSchema):
             "celular": data_user.celular,
             "username": data_user.username,
             "user_passw": hashed_password,
-            "procedencia": data_user.procedencia
+            "procedencia": data_user.procedencia,
+            "correoEnviado": 0
         }
         with conn.begin():
             conn.execute(users.insert().values(new_user))
@@ -57,7 +58,7 @@ def update_user(data_update: UserSchema, user_id: int):
     with engine.connect() as conn:
         conn.execute(users.update().values(name=data_update.name, username=data_update.username,
         user_passw=data_update.user_passw, email=data_update.email, celular=data_update.celular,
-        procedencia=data_update.procedencia).where(users.c.id == user_id))
+        procedencia=data_update.procedencia, correoEnviado=data_update.correoEnviado).where(users.c.id == user_id))
         result = conn.execute(users.select().where(users.c.id == user_id)).first()
         conn.commit()
         return result

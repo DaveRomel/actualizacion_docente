@@ -10,6 +10,7 @@ class UserSchema(BaseModel):
     username: str
     user_passw: str
     procedencia: str
+    correoEnviado: int
     #class Config:
     #    from_attributes = True
         
@@ -22,6 +23,7 @@ class UserResponse(BaseModel):
     username: str
     user_passw: str
     procedencia: str
+    correoEnviado: int
 
 class UserStatus(BaseModel):
     status: int
