@@ -1,9 +1,18 @@
 from fastapi import FastAPI
 from router.router import user
-
+from auth import auth
+from middleware.cors import setup_cors
+from router.materias import materia
+from router.inscripcion import inscripcion
 
 app=FastAPI()
-app.include_router(user)
+
+setup_cors(app)
+
+app.include_router(user, tags=["user"])
+app.include_router(materia, tags=["materia"])
+app.include_router(auth, tags=["auth"])
+app.include_router(inscripcion, tags=["inscripcion"])
 
 @app.get("/")
 def root():
