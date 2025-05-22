@@ -1,13 +1,25 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
+class UserCreate(BaseModel):
+    name: str
+    email: str
+    celular: str
+    user_passw: str
+    procedencia: str
+
+class UserUpdate(BaseModel):
+    name: str
+    celular: str
+    procedencia: str
+    email: str
+
 class UserSchema(BaseModel):
     #id: Optional[int] = None
     name: str
     email: str
     status: int
     celular: str
-    username: str
     user_passw: str
     procedencia: str
     correoEnviado: int
@@ -21,7 +33,6 @@ class UserResponse(BaseModel):
     email: str
     status: int
     celular: str
-    username: str
     user_passw: str
     procedencia: str
     correoEnviado: int

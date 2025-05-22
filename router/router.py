@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from starlette.status import HTTP_204_NO_CONTENT
-from schema.user_schema import UserSchema, UserResponse, UserStatus, RecuperacionEmailSchema, CambioContrasenaSchema
+from schema.user_schema import UserSchema, UserResponse, UserStatus, RecuperacionEmailSchema, CambioContrasenaSchema, UserCreate, UserUpdate
 from config.db import engine
 from models.users import users
 from werkzeug.security import generate_password_hash,check_password_hash
@@ -35,7 +35,7 @@ def get_user(id: int, current_user: UserResponse = Depends(get_current_active_us
         return result
     
 @user.post("/api/user")
-def create_user(data_user: UserSchema):
+def create_user(data_user: UserCreate):
     with engine.connect() as conn:
         # Hash the password
         hashed_password = get_password_hash(data_user.user_passw)
@@ -45,7 +45,6 @@ def create_user(data_user: UserSchema):
             "name": data_user.name,
             "email": data_user.email,
             "celular": data_user.celular,
-            "username": data_user.username,
             "user_passw": hashed_password,
             "procedencia": data_user.procedencia,
             "correoEnviado": 0
@@ -56,11 +55,11 @@ def create_user(data_user: UserSchema):
         return new_user
         
 @user.put("/api/user/{user_id}", response_model=UserResponse)
-def update_user(data_update: UserSchema, user_id: int, current_user: UserResponse = Depends(get_current_active_user)):
+def update_user(data_update: UserUpdate, user_id: int, current_user: UserResponse = Depends(get_current_active_user)):
     with engine.connect() as conn:
-        conn.execute(users.update().values(name=data_update.name, username=data_update.username,
-        user_passw=data_update.user_passw, email=data_update.email, celular=data_update.celular,
-        procedencia=data_update.procedencia, correoEnviado=data_update.correoEnviado).where(users.c.id == user_id))
+        conn.execute(users.update().values(name=data_update.name, 
+        email=data_update.email, celular=data_update.celular,
+        procedencia=data_update.procedencia).where(users.c.id == user_id))
         result = conn.execute(users.select().where(users.c.id == user_id)).first()
         conn.commit()
         return result
