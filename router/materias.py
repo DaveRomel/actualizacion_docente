@@ -3,8 +3,9 @@ from config.db import engine
 from models.materias import materias
 from schema.materia_schema import MateriaSchema, MateriaResponse
 from typing import List
+from auth import get_current_active_user
 
-materia = APIRouter()
+materia = APIRouter(dependencies=[Depends(get_current_active_user)])
 
 @materia.get("/api/materias", response_model=List[MateriaResponse])
 def get_materias():

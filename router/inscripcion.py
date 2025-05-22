@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends
 from config.db import engine
 from models.inscripcion import inscripciones
 from models.materias import materias
@@ -8,8 +8,9 @@ from typing import List
 from sqlalchemy import select,func
 from mailer.email_server import send_email
 from starlette.status import HTTP_204_NO_CONTENT
+from auth import get_current_active_user
 
-inscripcion = APIRouter()
+inscripcion = APIRouter(dependencies=[Depends(get_current_active_user)])
 
 @inscripcion.get("/api/inscripcion", response_model=List[InscripcionResponse])
 def get_inscripcion():
