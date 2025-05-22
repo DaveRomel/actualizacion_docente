@@ -6,3 +6,4 @@ models/__pycache__/
 router/__pycache__/
 schema/__pycache__/
 env/
+venv/
