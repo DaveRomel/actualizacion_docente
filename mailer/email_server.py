@@ -6,8 +6,9 @@ from dotenv import load_dotenv
 from pathlib import Path
 from schema.inscripcion_schema import NotificacionInscripcionSchema
 load_dotenv()
+from pydantic import BaseModel
 
-async def send_email(subject, data: NotificacionInscripcionSchema,email):
+async def send_email(subject: str, data: BaseModel, email: str, template_file: str):
     # Obtener variables del .env y corregir el tipo de datos
     smtp_host = os.getenv("SMTP_HOST_FA")
     smtp_port = int(os.getenv("SMTP_EMAIL_PORT_FA"))  # Convertir puerto a int
@@ -15,7 +16,7 @@ async def send_email(subject, data: NotificacionInscripcionSchema,email):
     smtp_password = os.getenv("SMTP_EMAIL_PASSWORD_FA")
 
     # Cargar el archivo HTML como plantilla
-    with open(Path(__file__).parent / "email_template.html", "r", encoding="utf-8") as f:
+    with open(Path(__file__).parent / template_file, "r", encoding="utf-8") as f:
         html_template = f.read()
 
     # Reemplazar las variables en el HTML

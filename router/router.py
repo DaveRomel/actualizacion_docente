@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends
-from schema.user_schema import UserSchema, UserResponse, UserStatus
+from fastapi import APIRouter, Depends, HTTPException, Response
+from starlette.status import HTTP_204_NO_CONTENT
+from schema.user_schema import UserSchema, UserResponse, UserStatus, RecuperacionEmailSchema, CambioContrasenaSchema
 from config.db import engine
 from models.users import users
 from werkzeug.security import generate_password_hash,check_password_hash
 from typing import List
 from passlib.context import CryptContext
 from auth import get_current_active_user
+import random
+from mailer.email_server import send_email
 
 user = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -96,4 +99,58 @@ def upgrade_status_3(user_id: int, current_user: UserResponse = Depends(get_curr
             result = conn.execute(users.select().where(users.c.id == user_id)).first()
             return result
  
+@user.post("/api/recuperar")
+async def recuperar_password(email: str):
+    with engine.connect() as conn:
+        try:
+            # Verificar si el correo electrónico existe en la base de datos
+            user = conn.execute(users.select().where(users.c.email == email)).first()
+            if not user:
+                return {"message": "El correo electrónico no está registrado."}
+            
+            # Generar un nuevo código de recuperación
+            codigo = str(random.randint(100000, 999999))  # Código de 6 dígitos
 
+            # Actualizar el código de recuperación en la base de datos
+            conn.execute(users.update().values(codigo_recuperacion=codigo).where(users.c.email == email))
+            data = RecuperacionEmailSchema(
+                name=user.name,
+                codigo=codigo,
+                email=email
+            )
+
+            await send_email(
+                subject="Recuperación de contraseña",
+                data=data,
+                email=email,
+                template_file="codigo_recuperacion.html"  
+            )
+            conn.commit()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al enviar el correo: {e}")
+        return {"message": "Se ha enviado un código de recuperación a tu correo electrónico."}
+
+@user.put("/api/cambiar_contrasena")
+def cambiar_contrasena(data: CambioContrasenaSchema):
+    with engine.connect() as conn:
+        try:
+            # Verificar si las contraseñas coinciden
+            if data.nuevo_password != data.confirmar_password:
+                raise HTTPException(status_code=400, detail="Las contraseñas no coinciden.")
+            
+            # Buscar si el usuario existe
+            user = conn.execute(users.select().where(users.c.email == data.email)).first()
+            if not user:
+                raise HTTPException(status_code=400, detail="Usuario no existe.")
+            
+            if data.codigo != user.codigo_recuperacion:
+                raise HTTPException(status_code=400, detail="Código de recuperación incorrecto.")
+            
+            # Actualizar la contraseña en la base de datos
+            hashed_password = get_password_hash(data.nuevo_password)
+            conn.execute(users.update().values(user_passw=hashed_password).where(users.c.email == data.email))
+            conn.commit()
+            
+            return {"message": "Contraseña actualizada exitosamente."}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al cambiar la contraseña: {e}")

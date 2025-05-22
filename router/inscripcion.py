@@ -52,7 +52,12 @@ async def inscribir_usuario(usuario_id: int, materia_id: int):
             )
             # Enviar la notificación por correo electrónico
             if correoEnviado == 0:
-                await enviar_notificacion(notificacion_data, usuario.email)
+                await send_email(
+                    subject="Notificación por inscripción por Correo Electrónico", 
+                    data=notificacion_data,
+                    email=usuario.email, 
+                    template_file="email_template.html"
+                )
             conn.commit()
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error al inscribir al usuario: {e}")
@@ -82,16 +87,6 @@ def contar_inscritos(materia_id: int):
         result = select(func.count()).select_from(inscripciones).where(inscripciones.c.materia_id == materia_id)
         inscritos = conn.execute(result).scalar()
         return inscritos
-    
-
-async def enviar_notificacion(data: NotificacionInscripcionSchema, email: str):
-    try:
-        #print(f"Enviando notificación a {nombre} ({email})")
-        await send_email("Notificación por inscripción por Correo Electrónico", data, email)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al enviar el correo: {e}")
-        
-    return Response(status_code = HTTP_204_NO_CONTENT)
 
 @inscripcion.delete("/api/inscripcion/{usuario_id}")
 def delete_inscripcion(usuario_id: int):
