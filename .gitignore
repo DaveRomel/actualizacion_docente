@@ -1,3 +1,4 @@
+.gitignore
 .env
 __pycache__/
 config/__pycache__/ 
@@ -5,4 +6,4 @@ models/__pycache__/
 models/__pycache__/
 router/__pycache__/
 schema/__pycache__/
-env/
+/venv/
