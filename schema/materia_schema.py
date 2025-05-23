@@ -5,6 +5,8 @@ class MateriaSchema(BaseModel):
     limite_inscritos: int
     fecha_curso: str
     hora_inicio: str
+    class Config:
+        orm_mode = True
 
 class MateriaResponse(BaseModel):
     id: int
@@ -12,3 +14,5 @@ class MateriaResponse(BaseModel):
     limite_inscritos: int
     fecha_curso: str
     hora_inicio: str
+    class Config:
+        orm_mode = True
