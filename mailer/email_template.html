@@ -11,27 +11,27 @@
     />
     <title>Notificación</title>
   </head>
-  <body
-    style="
-      font-family: Montserrat, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    "
-  >
+  <body style="margin: 0; padding: 0; font-family: Montserrat, sans-serif">
     <div
       style="
+        background-image: url('cid:{cid_fondo}');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
         max-width: 600px;
-        background: #ffffff;
         margin: 20px auto;
         padding: 20px;
         border-radius: 8px;
         border: 1px solid #ddd;
       "
     >
+      <div style="text-align: right">
+        <img src="cid:{cid_logo}" alt="Logo" style="height: 60px" />
+      </div>
       <h2 style="color: #333">Estimado(a) {nombre_maestro}</h2>
       <p style="color: #555; line-height: 1.6">
-        Gracias por inscribirse al curso de
+        Gracias por inscribirse al curso de {nombre_curso}. Este curso es parte
+        de la
         <strong>actualización docente</strong> de la Universidad Tecnológica de
         la Mixteca. La fecha de inicio del curso es el <strong>{fecha}</strong>.
         Y la hora de inicio es a las <strong>{hora}</strong>
