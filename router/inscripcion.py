@@ -36,14 +36,21 @@ async def inscribir_usuario(usuario_id: int, materia_id: int):
             raise HTTPException(status_code=400, detail="No se puede inscribir, el límite de inscritos ha sido alcanzado")
 
         try:
-            correoEnviado = conn.execute(select(users.c.correoEnviado).select_from(users).where(users.c.id == usuario_id)).scalar()        
-            conn.execute(inscripciones.insert().values(usuario_id=usuario_id, materia_id=materia_id))
+            correoEnviado = conn.execute(select(users.c.correoEnviado).select_from(users).where(users.c.id == usuario_id)).scalar() 
+
+            existeInscripcion = conn.execute(inscripciones.select().where(inscripciones.c.usuario_id == usuario_id)).first()
+            if not existeInscripcion:       
+                conn.execute(inscripciones.insert().values(usuario_id=usuario_id, materia_id=materia_id))
+            else:
+                # Actualizar la inscripción existente
+                conn.execute(inscripciones.update().values(materia_id=materia_id).where(inscripciones.c.usuario_id == usuario_id))
 
             conn.execute(users.update().values(status=materia_id, correoEnviado=1).where(users.c.id == usuario_id))
 
             #Obtener el usuario y la materia para enviar la notificación
             usuario = conn.execute(users.select().where(users.c.id == usuario_id)).first()
             materia = conn.execute(materias.select().where(materias.c.id == materia_id)).first()
+
             notificacion_data = NotificacionInscripcionSchema(
                 nombre_maestro=usuario.name,
                 nombre_curso=materia.name,
@@ -88,11 +95,13 @@ def contar_inscritos(materia_id: int):
         inscritos = conn.execute(result).scalar()
         return inscritos
 
-@inscripcion.delete("/api/inscripcion/{usuario_id}")
+# Eliminar soft inscripción de un usuario
+@inscripcion.put("/api/inscripcion/{usuario_id}")
 def delete_inscripcion(usuario_id: int):
     with engine.connect() as conn:
         with conn.begin():
-            conn.execute(inscripciones.delete().where(inscripciones.c.usuario_id == usuario_id))
+            # Actualizar la materia del usuario a 0 (sin inscripción)
+            conn.execute(inscripciones.update().values(materia_id=0).where(inscripciones.c.usuario_id == usuario_id))
             conn.execute(users.update().values(status=0).where(users.c.id == usuario_id))
             conn.commit()
             return {"message": "Inscripción eliminada correctamente"}
