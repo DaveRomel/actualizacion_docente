@@ -9,13 +9,19 @@ from passlib.context import CryptContext
 from auth import get_current_active_user
 import random
 from mailer.email_server import send_email
-
+import re
+from sqlalchemy import and_
 user = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+def validarEmail(email):
+    regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    if re.fullmatch(regex, email):
+        return 1
+    return 0
 
 @user.get("/user")
 def get_user(): 
@@ -37,9 +43,16 @@ def get_user(id: int, current_user: UserResponse = Depends(get_current_active_us
 @user.post("/api/user")
 def create_user(data_user: UserCreate):
     with engine.connect() as conn:
+        #ir user exist
+        user_exist = conn.execute(users.select().where(users.c.email == data_user.email)).first()
+        if user_exist:
+            raise HTTPException(status_code=418, detail="Usuario con correo existente")
         # Hash the password
         hashed_password = get_password_hash(data_user.user_passw)
         
+        emailValido = validarEmail(data_user.email)
+        if emailValido==0:
+            raise HTTPException(status_code=404, detail="Correo con formato invalido")
         new_user = {
             "status": 0,
             "name": data_user.name,
@@ -49,14 +62,17 @@ def create_user(data_user: UserCreate):
             "procedencia": data_user.procedencia,
             "correoEnviado": 0
         }
-        with conn.begin():
-            conn.execute(users.insert().values(new_user))
-            #print(new_user)
+        conn.execute(users.insert().values(new_user))
+        conn.commit()
         return new_user
         
 @user.put("/api/user/{user_id}", response_model=UserResponse)
 def update_user(data_update: UserUpdate, user_id: int, current_user: UserResponse = Depends(get_current_active_user)):
     with engine.connect() as conn:
+
+        user_exist = conn.execute(users.select().where(and_(users.c.email == data_update.email, users.c.id != user_id))).first()
+        if user_exist:
+            raise HTTPException(status_code=418, detail="Usuario con correo existente")
         conn.execute(users.update().values(name=data_update.name, 
         email=data_update.email, celular=data_update.celular,
         procedencia=data_update.procedencia).where(users.c.id == user_id))

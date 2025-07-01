@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import date
 
 class InscripcionSchema(BaseModel):
     usuario_id: int
@@ -16,7 +17,7 @@ class InscripcionResponse(BaseModel):
 class NotificacionInscripcionSchema(BaseModel):
     nombre_maestro: str
     nombre_curso: str
-    fecha: str
     hora: str
+    fecha: str
     class Config:
         orm_mode = True
