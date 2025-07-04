@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from starlette.status import HTTP_204_NO_CONTENT
 from schema.user_schema import UserSchema, UserResponse, UserStatus, RecuperacionEmailSchema, CambioContrasenaSchema, UserCreate, UserUpdate
 from config.db import engine
@@ -23,6 +23,15 @@ def validarEmail(email):
         return 1
     return 0
 
+
+def convertir_nombre(name: str):
+    palabras = name.split(" ")
+    palabra_formateada = ""
+    for cad in palabras:
+        palabra_formateada = palabra_formateada + cad[0].upper() + cad[1:].lower() + " "
+        print(palabra_formateada)
+    return palabra_formateada[:len(palabra_formateada)-1]
+
 @user.get("/user")
 def get_user(): 
     return {"message": "Este es la raiz de router"}
@@ -46,7 +55,7 @@ def create_user(data_user: UserCreate):
         #ir user exist
         user_exist = conn.execute(users.select().where(users.c.email == data_user.email)).first()
         if user_exist:
-            raise HTTPException(status_code=418, detail="Usuario con correo existente")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuario con correo existente")
         # Hash the password
         hashed_password = get_password_hash(data_user.user_passw)
         
@@ -55,7 +64,7 @@ def create_user(data_user: UserCreate):
             raise HTTPException(status_code=404, detail="Correo con formato invalido")
         new_user = {
             "status": 0,
-            "name": data_user.name,
+            "name": convertir_nombre(data_user.name),
             "email": data_user.email,
             "celular": data_user.celular,
             "user_passw": hashed_password,
@@ -72,8 +81,14 @@ def update_user(data_update: UserUpdate, user_id: int, current_user: UserRespons
 
         user_exist = conn.execute(users.select().where(and_(users.c.email == data_update.email, users.c.id != user_id))).first()
         if user_exist:
-            raise HTTPException(status_code=418, detail="Usuario con correo existente")
-        conn.execute(users.update().values(name=data_update.name, 
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuario con correo existente")
+        
+        formato_nombre = convertir_nombre(data_update.name)
+        emailValido = validarEmail(data_update.email)
+        if emailValido==0:
+            raise HTTPException(status_code=404, detail="Correo con formato invalido")
+        
+        conn.execute(users.update().values(name=formato_nombre, 
         email=data_update.email, celular=data_update.celular,
         procedencia=data_update.procedencia).where(users.c.id == user_id))
         result = conn.execute(users.select().where(users.c.id == user_id)).first()
@@ -133,7 +148,6 @@ async def recuperar_password(email: str):
                 codigo=codigo,
                 email=email
             )
-
             await send_email(
                 subject="Recuperación de contraseña",
                 data=data,
